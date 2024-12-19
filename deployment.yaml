@@ -1,38 +1,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  creationTimestamp: null
-  labels:
-    app: flaskdemo
   name: flaskdemo
 spec:
-  replicas: 3
   selector:
     matchLabels:
       app: flaskdemo
-  strategy: {}
+  replicas: 2
   template:
     metadata:
-      creationTimestamp: null
       labels:
         app: flaskdemo
     spec:
       containers:
-      - image: devops830/test:3
-        name: flaskdemo
-        resources: {}
-status: {}
+      - name: flaskdemo
+        image: devops830/notes-app:latest
+        imagePullPolicy: Always
+      imagePullSecrets:
+      - name: dockerhub-secret  # Reference to the Docker Hub secret
+
 ---
+
 apiVersion: v1
 kind: Service
 metadata:
   name: lb-service
-  labels:
-    app: lb-service
 spec:
-  type: LoadBalancer
-  ports:
-  - port: 80
-    targetPort: 5000
   selector:
     app: flaskdemo
+  ports:
+    - protocol: "TCP"
+      port: 80
+      targetPort: 5000
+  type: LoadBalancer
