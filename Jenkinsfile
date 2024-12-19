@@ -1,34 +1,52 @@
-node {
-    def app
+pipeline {
+    agent any
 
-    stage('Clone repository') {
-      
-
-        checkout scm
+    tools {
+        maven 'maven'
+        jdk 'jdk17'
     }
 
-    stage('Build image') {
-  
-       app = docker.build("devops830/test")
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
     }
 
-    stage('Test image') {
-  
-
-        app.inside {
-            sh 'echo "Tests passed"'
+    stages {
+        stage('Git Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/anjalikota10/Blogging-app.git'
+            }
         }
-    }
 
-    stage('Push image') {
+
+        stage('Trivy FS Scan') {
+            steps {
+                sh 'trivy fs --format table -o fs-report.html .'
+            }
+        }
         
-        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
-            app.push("${env.BUILD_NUMBER}")
+        stage('Build & Tag Docker Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'dockerhub', toolName: 'docker') {
+                        sh 'docker build -t devops830/blogging-app:latest .'
+                    }
+                }
+            }
+        }
+
+        stage('Scan Docker Image by Trivy') {
+            steps {
+                sh 'trivy image --format table -o image-report.html devops830/blogging-app:latest'
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'dockerhub', toolName: 'docker') {
+                        sh 'docker push devops830/blogging-app:latest'
+                    }
+                }
+            }
         }
     }
-    
-    stage('Trigger ManifestUpdate') {
-                echo "triggering updatemanifestjob"
-                build job: 'updatemanifest', parameters: [string(name: 'DOCKERTAG', value: env.BUILD_NUMBER)]
-        }
-}
