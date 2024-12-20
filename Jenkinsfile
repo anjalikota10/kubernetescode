@@ -1,15 +1,6 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'maven'
-        jdk 'jdk17'
-    }
-
-    environment {
-        SCANNER_HOME = tool 'sonar-scanner'
-    }
-
     stages {
         stage('Git Checkout') {
             steps {
@@ -28,7 +19,7 @@ pipeline {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'dockerhub', toolName: 'docker') {
-                        sh 'docker build -t devops830/blogging-app:latest .'
+                        sh 'docker build -t devops830/python-app:latest .'
                     }
                 }
             }
@@ -36,7 +27,7 @@ pipeline {
 
         stage('Scan Docker Image by Trivy') {
             steps {
-                sh 'trivy image --format table -o image-report.html devops830/blogging-app:latest'
+                sh 'trivy image --format table -o image-report.html devops830/python-app:latest'
             }
         }
 
@@ -44,7 +35,7 @@ pipeline {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'dockerhub', toolName: 'docker') {
-                        sh 'docker push devops830/blogging-app:latest'
+                        sh 'docker push devops830/python-app:latest'
                     }
                 }
             }
